@@ -1,0 +1,12 @@
+﻿  Bentley Systems Make Utility. Version 10.00.00.26, Mar 15 2018
+  Mon Apr 12 10:29:15 2021
+  
+  Cannot find the .NET framework 64-bit version for this toolset - using default: v4.0.30319
+  Cannot find the .NET framework 64-bit location for this toolset - using default: C:\Windows\Microsoft.NET\Framework64
+  
+  
+  
+  ~mkdir C:\temp\objects\
+  ~mkdir C:\temp\rscobj\
+  ~mkdir C:\PROGRA~1\Bentley\MICROS~1\MICROS~1\mdlapps\
+  Mon Apr 12 10:29:15 2021, elapsed time: 0:00

@@ -1,0 +1,147 @@
+#*--------------------------------------------------------------------------------------+
+#
+#     $Source: MstnExamples/Elements/exampletool/exampletool.mke $
+#
+#  $Copyright: (c) 2015 Bentley Systems, Incorporated. All rights reserved. $
+#
+#--------------------------------------------------------------------------------------*/
+PolicyFile = MicroStationPolicy.mki
+appName         = DimensionSty
+sAppName        = DimensionSty
+
+baseDir         = $(_MakeFilePath)
+privateInc      = $(baseDir)
+langSpec        = $(baseDir)english/
+mdlLibs         = $(MSMDE)library/
+
+%include mdl.mki
+
+#----------------------------------------------------------------------
+# Create needed output directories if they don't exist
+#----------------------------------------------------------------------
+always:
+    ~mkdir $(o)
+    ~mkdir $(rscObjects)
+    ~mkdir $(mdlapps)
+
+# Search in $(o) for command table resources
+dirToSearch = $(o)
+%include cincapnd.mki
+
+#----------------------------------------------------------------------
+#   The following defines the dependency list for the CODE portion
+#   of this application. Included are any CODE libraries or objects
+#   from any related applications. Typically these files are linked
+#   together into a file with a '.mp' extension. (Mdl Program module)
+#
+#   NOTE: ALL literal strings which would be contained in a .mc file
+#         should be placed in a messageList resource located in the
+#         directory pointed to by 'langSpec'. All strings should be
+#         loaded from a messageList resource at runtime.
+#----------------------------------------------------------------------
+appObjects = $(o)$(appName)$(oext) \
+			 $(o)Main$(oext) 
+    
+DLM_OBJECT_DEST         = $(o)
+DLM_NAME                = $(appName)
+DLM_OBJECT_FILES        = $(appObjects)
+DLM_NO_DLS              = 1     #  Used DLLEXPORT in .c file instead of using a .dls
+DLM_NO_DEF              = 1
+DLM_NOENTRY             = 1
+DLM_DEST                = $(mdlapps)
+LINKER_LIBRARIES        = $(mdlLibs)bentley.lib \
+                          $(mdlLibs)BentleyAllocator.lib \
+                          $(mdlLibs)mdlbltin.lib \
+                          $(mdlLibs)RmgrTools.lib \
+                          $(mdlLibs)BentleyGeom.lib \
+                          $(mdlLibs)DgnPlatform.lib \
+                          $(mdlLibs)dgnview.lib 
+DLM_NO_SIGN             = 1     # only for test apps; any delivered app MUST be signed.
+
+#----------------------------------------------------------------------
+#   The following defines the dependency list for any NON-Translatable
+#   resources used by this application. Typically this includes any
+#   command table definitions or resource type definitions. This list
+#   would also contain the completed CODE portion of the application.
+#   Typically these files are lib'd together into a file with a '.mi'
+#   extension. (Mdl Intermediate application)
+#----------------------------------------------------------------------
+appRscs =     $(o)$(sAppName)cmd.rsc
+
+#--------------------------------------------
+#       Create command table and header file
+#--------------------------------------------
+$(o)$(sAppName)cmd.h                : $(baseDir)$(sAppName)cmd.r
+
+$(rscObjects)$(sAppName)cmd.rsc     : $(baseDir)$(sAppName)cmd.r
+
+#----------------------------------------------------------------------
+#       The following section builds any necessary CODE modules for the
+#       application.
+#----------------------------------------------------------------------
+$(o)$(appName)$(oext)           : $(baseDir)$(appName).cpp $(o)$(sAppName)cmd.h $(baseDir)$(appName).h
+
+$(o)Main$(oext)					: $(baseDir)Main.cpp     
+
+#----------------------------------------------------------------------
+#       The following section generates the MDL Intermediate module. This
+#       module contains any non-translatable resource modules.
+#
+#       NOTE: This module MUST be placed in the directory pointed to by
+#         the 'o' macro defined in MDL.MKI. This module is
+#         shipped as part of the Foreign Language Translation Kit.
+#----------------------------------------------------------------------
+$(o)$(appName).mi    : $(appRscs)
+        $(msg)
+        > $(o)make.opt
+        -o$@
+        $(appRscs)
+        <
+        $(RLibCmd) @$(o)make.opt
+        ~time
+
+%include dlmlink.mki
+
+#----------------------------------------------------------------------
+#   The following defines the dependency list for translatable
+#   resources used by this application. Typically this includes any
+#   dialog definitions or message list resources.
+#   Typically these files are lib'd together into a file with a '.ma'
+#   extension. (Mdl Application)
+#
+#   NOTE: Dialog box resources should NOT contain literal strings for
+#         any type of label. Instead, ALL literal strings should be
+#         replaced by a definition found in an include file located
+#         in a directory pointed to by 'langSpec'.
+#----------------------------------------------------------------------
+maRscs =     $(o)$(appName).mi    
+
+#----------------------------------------------------------------------
+#       The following section builds any translatable resource modules for
+#   the application.
+#----------------------------------------------------------------------
+#$(rscObjects)$(sAppName)msg.rsc     :  $(basedir)$(appName).h
+
+#----------------------------------------------------------------------
+# Link the MA
+#----------------------------------------------------------------------
+MA_NAME         = $(appName)
+MA_DEST         = $(DLM_DEST)
+MA_RSC_FILES    = $(maRscs)
+MA_EXT          = .ma
+
+cmdFile = $(o)$(MA_NAME)link.cmd
+
+#--------------------------------------------------------------------------------------
+#  Link and sign the MA
+#--------------------------------------------------------------------------------------
+"$(MA_DEST)$(MA_NAME)$(MA_EXT)"     : $(MA_RSC_FILES)
+    $(msg)
+    > $(cmdFile)
+    -o$@
+    $(MA_SPECIAL_LINKOPT)
+    $(MA_RSC_FILES)
+    <
+    $(RLibCmd) @$(cmdFile)
+    ~time
+
